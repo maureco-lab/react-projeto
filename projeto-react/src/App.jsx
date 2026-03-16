@@ -25,7 +25,7 @@ function App() {
       margin: "0 auto", 
       padding: "20px" 
     }}>
-      <h1 style={{ textAlign: "center" }}>Meu App Multiusuário</h1>
+      <h1 style={{ textAlign: "center" }}>Lista de Tarefas</h1>
       
       {/* Passamos o usuário logado para o componente de Auth */}
       <Auth usuarioLogado={user} />
