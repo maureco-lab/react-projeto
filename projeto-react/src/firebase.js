@@ -6,7 +6,7 @@ const firebaseConfig = {
   // Cole seus dados aqui
   apiKey: "AIzaSyCcrn8TaTaWTVshZXCZG56ltuklPs9xLpU",
   authDomain: "projeto-react-b41a0.firebaseapp.com",
-  databaseURL: "https://SEU_PROJETO.firebaseio.com",
+  databaseURL: "https://projeto-react-b41a0-default-rtdb.firebaseio.com",
   projectId: "projeto-react-b41a0",
   storageBucket: "projeto-react-b41a0.firebasestorage.app",
   messagingSenderId: "968263915631",
