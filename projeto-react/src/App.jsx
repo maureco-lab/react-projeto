@@ -3,6 +3,7 @@ import { auth } from "./firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import Auth from "./Auth";
 import GerenciadorTarefas from "./GerenciadorTarefas";
+import "./App.css";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -16,28 +17,30 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  if (loading) return <div style={{ padding: "20px" }}>Carregando...</div>;
+  if (loading) {
+    return (
+      <div className="container" style={{ textAlign: "center" }}>
+        <p>Carregando app...</p>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ 
-      fontFamily: "Arial, sans-serif", 
-      maxWidth: "600px", 
-      margin: "0 auto", 
-      padding: "20px" 
-    }}>
-      <h1 style={{ textAlign: "center" }}>Lista de Tarefas</h1>
+    <div className="container">
+      <div className="header">
+        <h1>🎯 Tarefas Pro</h1>
+        <p style={{ color: "var(--text-muted)" }}>Sua lista pessoal e segura</p>
+      </div>
       
-      {/* Passamos o usuário logado para o componente de Auth */}
+      {/* Componente de Autenticação */}
       <Auth usuarioLogado={user} />
 
-      <hr style={{ margin: "30px 0" }} />
+      {/* Se o usuário estiver logado, mostra o Gerenciador */}
+      {user && <GerenciadorTarefas userId={user.uid} />}
 
-      {/* Renderização Condicional: Só mostra o CRUD se houver um usuário */}
-      {user ? (
-        <GerenciadorTarefas userId={user.uid} />
-      ) : (
-        <div style={{ textAlign: "center", color: "#666" }}>
-          <p>Você precisa estar logado para gerenciar suas tarefas.</p>
+      {!user && (
+        <div style={{ textAlign: "center", marginTop: "20px", color: "var(--text-muted)" }}>
+          <small>Crie uma conta gratuita para começar.</small>
         </div>
       )}
     </div>
