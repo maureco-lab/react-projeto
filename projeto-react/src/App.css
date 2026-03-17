@@ -11,9 +11,10 @@
 
 body {
   background-color: var(--bg);
-  color: var(--text-main);
+  color: var(--text-main) !important; /* !important garante que o sistema não mude a cor */
   margin: 0;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
 .container {
@@ -29,6 +30,10 @@ body {
   margin-bottom: 30px;
 }
 
+.header h1{
+  
+}
+
 .card {
   background: var(--card);
   padding: 24px;
@@ -36,6 +41,10 @@ body {
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
   border: 1px solid var(--border);
   margin-bottom: 20px;
+}
+
+.card h2, .card h3, .card p, .card span {
+  color: #1e293b !important; 
 }
 
 input {
@@ -98,11 +107,12 @@ button:hover {
   cursor: pointer;
   font-size: 16px;
   padding-right: 10px;
+  color: #1e293b; /* Cor grafite escuro */
 }
 
 .completed {
   text-decoration: line-through;
-  color: var(--text-muted);
+  color: #94a3b8 !important; 
 }
 
 .btn-delete {
