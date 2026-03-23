@@ -205,3 +205,25 @@ button:hover {
 button:not(:disabled)[type="submit"] {
   transition: all 0.3s ease;
 }
+
+.task-image-container {
+  width: 100%;
+  margin-top: 10px;
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.task-image {
+  display: block;
+  width: 100%;      
+  height: auto;
+  border-radius: 30px;      
+  max-height: 300px; 
+  object-fit: cover; 
+  transition: transform 0.3s ease;
+}
+
+.task-image:hover {
+  transform: scale(1.02);
+}
