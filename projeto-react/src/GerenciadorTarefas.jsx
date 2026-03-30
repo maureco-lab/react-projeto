@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
-import { db, storage } from "./firebase"; 
+// 1. Adicionado remoteConfig na importação local
+import { db, storage, remoteConfig } from "./firebase"; 
 import { ref as dbRef, push, onValue, remove, update } from "firebase/database";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
+// 2. Adicionadas funções do Remote Config
+import { getValue, fetchAndActivate } from "firebase/remote-config";
 
 function GerenciadorTarefas({ userId }) {
   const [textoTarefa, setTextoTarefa] = useState("");
@@ -9,8 +12,29 @@ function GerenciadorTarefas({ userId }) {
   const [previewUrl, setPreviewUrl] = useState(null);
   const [listaTarefas, setListaTarefas] = useState([]);
   const [enviando, setEnviando] = useState(false);
+  
+  // 3. Novo estado para a Feature Flag
+  const [podeSubirImagem, setPodeSubirImagem] = useState(false);
 
   const caminhoBase = `usuarios/${userId}/tarefas`;
+
+  // 4. useEffect para buscar a Feature Flag no Firebase
+  useEffect(() => {
+    const buscarFlags = async () => {
+      try {
+        // Força a atualização (0 ms de cache para teste, mude para 3600000 em produção)
+        remoteConfig.settings.minimumFetchIntervalMillis = 0;
+        await fetchAndActivate(remoteConfig);
+        
+        // Pega o valor da flag (certifique-se que o nome no console é "mostrar_upload")
+        const habilitado = getValue(remoteConfig, "mostrarUploadImage").asBoolean();
+        setPodeSubirImagem(habilitado);
+      } catch (error) {
+        console.error("Erro ao carregar Remote Config:", error);
+      }
+    };
+    buscarFlags();
+  }, []);
 
   useEffect(() => {
     const tarefasRef = dbRef(db, caminhoBase);
@@ -40,7 +64,7 @@ function GerenciadorTarefas({ userId }) {
     let urlDaImagem = "";
 
     try {
-      if (imagemSelecionada) {
+      if (imagemSelecionada && podeSubirImagem) { // Verifica a flag também no salvamento
         const nomeArquivo = `${Date.now()}_${imagemSelecionada.name}`;
         const sRef = storageRef(storage, `usuarios/${userId}/fotos/${nomeArquivo}`);
         await uploadBytes(sRef, imagemSelecionada);
@@ -77,7 +101,6 @@ function GerenciadorTarefas({ userId }) {
             placeholder="O que vamos fazer?"
             disabled={enviando}
           />
-          {/* O botão muda de cor e texto se houver imagem para salvar */}
           <button 
             type="submit" 
             disabled={enviando} 
@@ -88,37 +111,41 @@ function GerenciadorTarefas({ userId }) {
           </button>
         </div>
 
-        <div className="upload-container">
-          <input 
-            type="file" 
-            id="arquivo-input" 
-            className="input-file-oculto" 
-            accept="image/*" 
-            onChange={lidarComArquivo} 
-            disabled={enviando}
-          />
-          <label htmlFor="arquivo-input" className="label-file">
-            {imagemSelecionada ? `📷 ${imagemSelecionada.name}` : "📁 Anexar foto"}
-          </label>
-          
-          {previewUrl && (
-            <div style={{ position: 'relative', marginTop: '10px' }}>
-              <img src={previewUrl} alt="Preview" className="img-preview" />
-              
-              <div className="aviso-confirmar">
-                ⚠️ Clique em SALVAR para confirmar a foto!
-              </div>
+        {/* 5. CONDICIONAL DA FEATURE FLAG ENVOLVENDO O UPLOAD */}
+        {podeSubirImagem && (
+          <div className="upload-container">
+            <input 
+              type="file" 
+              id="arquivo-input" 
+              className="input-file-oculto" 
+              accept="image/*" 
+              onChange={lidarComArquivo} 
+              disabled={enviando}
+            />
+            <label htmlFor="arquivo-input" className="label-file">
+              {imagemSelecionada ? `📷 ${imagemSelecionada.name}` : "📁 Anexar foto"}
+            </label>
+            
+            {previewUrl && (
+              <div style={{ position: 'relative', marginTop: '10px' }}>
+                <img src={previewUrl} alt="Preview" className="img-preview" />
+                
+                <div className="aviso-confirmar">
+                  ⚠️ Clique em SALVAR para confirmar a foto!
+                </div>
 
-              <button 
-                type="button" 
-                className="btn-remover-preview"
-                onClick={() => {setImagemSelecionada(null); setPreviewUrl(null);}}
-              >
-                ×
-              </button>
-            </div>
-          )}
-        </div>
+                <button 
+                  type="button" 
+                  className="btn-remover-preview"
+                  onClick={() => {setImagemSelecionada(null); setPreviewUrl(null);}}
+                >
+                  ×
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+        {/* FIM DA CONDICIONAL */}
       </form>
 
       <div style={{ marginTop: '25px' }}>
