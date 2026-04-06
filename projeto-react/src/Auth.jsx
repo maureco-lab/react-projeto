@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { auth } from "./firebase";
+import { auth, db } from "./firebase"; // Importe o 'db' também
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { ref, update, get } from "firebase/database"; // Importes do Database
 
 function Auth({ usuarioLogado }) {
   const [email, setEmail] = useState("");
@@ -15,9 +16,20 @@ function Auth({ usuarioLogado }) {
       if (modoLogin) {
         await signInWithEmailAndPassword(auth, email, senha);
       } else {
-        await createUserWithEmailAndPassword(auth, email, senha);
+        // 1. Cria o usuário no Auth
+        const resultado = await createUserWithEmailAndPassword(auth, email, senha);
+        const user = resultado.user;
+
+        // 2. Registra o usuário no Realtime Database (Nó usuários)
+        // Usamos update para não apagar dados caso o nó já exista
+        await update(ref(db, `usuarios/${user.uid}`), {
+          email: user.email,
+          role: "user", 
+          dataCadastro: new Date().toISOString()
+        });
       }
     } catch (error) {
+      console.error(error);
       setErro("Ops! Verifique seus dados.");
     }
   };
@@ -31,6 +43,7 @@ function Auth({ usuarioLogado }) {
     );
   }
 
+  // ... (mantenha o restante do seu return original igual)
   return (
     <div className="card">
       <h2>{modoLogin ? "Entrar" : "Criar Conta"}</h2>
