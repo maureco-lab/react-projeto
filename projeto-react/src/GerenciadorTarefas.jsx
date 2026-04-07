@@ -1,10 +1,8 @@
 import { useState, useEffect } from "react";
-// 1. Adicionado remoteConfig na importação local
-import { db, storage, remoteConfig } from "./firebase"; 
+// Importamos apenas o necessário do Database e Storage
+import { db, storage } from "./firebase"; 
 import { ref as dbRef, push, onValue, remove, update } from "firebase/database";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
-// 2. Adicionadas funções do Remote Config
-import { getValue, fetchAndActivate } from "firebase/remote-config";
 
 function GerenciadorTarefas({ userId }) {
   const [textoTarefa, setTextoTarefa] = useState("");
@@ -13,39 +11,36 @@ function GerenciadorTarefas({ userId }) {
   const [listaTarefas, setListaTarefas] = useState([]);
   const [enviando, setEnviando] = useState(false);
   
-  // 3. Novo estado para a Feature Flag
+  // Estado que será controlado pelo seu Painel Admin
   const [podeSubirImagem, setPodeSubirImagem] = useState(false);
 
   const caminhoBase = `usuarios/${userId}/tarefas`;
 
-  // 4. useEffect para buscar a Feature Flag no Firebase
+  // useEffect corrigido para escutar o DATABASE em tempo real
   useEffect(() => {
-    const buscarFlags = async () => {
-      try {
-        // Força a atualização (0 ms de cache para teste, mude para 3600000 em produção)
-        remoteConfig.settings.minimumFetchIntervalMillis = 0;
-        await fetchAndActivate(remoteConfig);
-        
-        // Pega o valor da flag (certifique-se que o nome no console é "mostrar_upload")
-        const habilitado = getValue(remoteConfig, "mostrarUploadImage").asBoolean();
-        setPodeSubirImagem(habilitado);
-      } catch (error) {
-        console.error("Erro ao carregar Remote Config:", error);
-      }
-    };
-    buscarFlags();
-  }, []);
+    // 1. ESCUTA A FLAG NO BANCO (O nó que seu Painel Admin altera)
+    const settingsRef = dbRef(db, "settings/mostrarUploadImage");
+    
+    const unsubSettings = onValue(settingsRef, (snapshot) => {
+      const valorDoBanco = snapshot.val();
+      // Define se mostra ou não o upload baseado no que o Admin clicou
+      setPodeSubirImagem(!!valorDoBanco); 
+    });
 
-  useEffect(() => {
+    // 2. ESCUTA AS TAREFAS
     const tarefasRef = dbRef(db, caminhoBase);
-    const unsubscribe = onValue(tarefasRef, (snapshot) => {
+    const unsubTarefas = onValue(tarefasRef, (snapshot) => {
       const data = snapshot.val();
       const formatadas = data 
         ? Object.entries(data).map(([id, val]) => ({ id, ...val })) 
         : [];
       setListaTarefas(formatadas.reverse());
     });
-    return () => unsubscribe();
+
+    return () => {
+      unsubSettings();
+      unsubTarefas();
+    };
   }, [userId, caminhoBase]);
 
   const lidarComArquivo = (e) => {
@@ -64,7 +59,8 @@ function GerenciadorTarefas({ userId }) {
     let urlDaImagem = "";
 
     try {
-      if (imagemSelecionada && podeSubirImagem) { // Verifica a flag também no salvamento
+      // Só faz o upload se a imagem existir E a flag estiver ativa no banco
+      if (imagemSelecionada && podeSubirImagem) {
         const nomeArquivo = `${Date.now()}_${imagemSelecionada.name}`;
         const sRef = storageRef(storage, `usuarios/${userId}/fotos/${nomeArquivo}`);
         await uploadBytes(sRef, imagemSelecionada);
@@ -83,7 +79,7 @@ function GerenciadorTarefas({ userId }) {
       setPreviewUrl(null);
     } catch (error) {
       console.error("Erro:", error);
-      alert("Erro ao salvar. Verifique sua conexão.");
+      alert("Erro ao salvar.");
     } finally {
       setEnviando(false);
     }
@@ -111,7 +107,7 @@ function GerenciadorTarefas({ userId }) {
           </button>
         </div>
 
-        {/* 5. CONDICIONAL DA FEATURE FLAG ENVOLVENDO O UPLOAD */}
+        {/* RENDERIZAÇÃO CONDICIONAL CONTROLADA PELO ADMIN */}
         {podeSubirImagem && (
           <div className="upload-container">
             <input 
@@ -129,11 +125,6 @@ function GerenciadorTarefas({ userId }) {
             {previewUrl && (
               <div style={{ position: 'relative', marginTop: '10px' }}>
                 <img src={previewUrl} alt="Preview" className="img-preview" />
-                
-                <div className="aviso-confirmar">
-                  ⚠️ Clique em SALVAR para confirmar a foto!
-                </div>
-
                 <button 
                   type="button" 
                   className="btn-remover-preview"
@@ -145,7 +136,6 @@ function GerenciadorTarefas({ userId }) {
             )}
           </div>
         )}
-        {/* FIM DA CONDICIONAL */}
       </form>
 
       <div style={{ marginTop: '25px' }}>
